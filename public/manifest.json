@@ -1,0 +1,9 @@
+{
+  "short_name": "Freight Train Fun 01",
+  "name": "Freight Train Fun 01",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
