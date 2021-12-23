@@ -4,33 +4,12 @@ import {h, makeComponent} from '@cycle/react';
 import {Container, Header, Button, Segment} from 'semantic-ui-react' ;
 import TrainCreator from './components/TrainCreator' ;
 
-function main(sources: any) {
-
-  const {
-    value: redLineCreatorValue$
-    , react: redLineCreatorVdom$
-  } = TrainCreator({
-    react: sources.react
-    , props: xs.of({lineColor: 'Red'})
-  }) ;
-  const {
-    value: blueLineCreatorValue$
-    , react: blueLineCreatorVdom$
-  } = TrainCreator({
-    react: sources.react
-    , props: xs.of({lineColor: 'Blue'})
-  }) ;
-
-  const state$ = xs.combine(redLineCreatorValue$, blueLineCreatorValue$)
-    .map(
-      ([
-        {totalTrains: redTotalTrains}
-        , {totalTrains: blueTotalTrains}
-      ]: [any, any]) => ({totalTrains: redTotalTrains + blueTotalTrains})
-    )
-  ;
-
-  const vdom$ = xs.combine(
+function view(
+  state$: any
+  , redLineCreatorVdom$: any
+  , blueLineCreatorVdom$: any
+) {
+  return xs.combine(
     state$, redLineCreatorVdom$, blueLineCreatorVdom$
   )
     .map(([
@@ -48,6 +27,39 @@ function main(sources: any) {
       ])
     )
   ;
+}
+
+function model(redLineCreatorValue$: any, blueLineCreatorValue$: any) {
+  return xs.combine(redLineCreatorValue$, blueLineCreatorValue$)
+    .map(
+      ([
+        {totalTrains: redTotalTrains}
+        , {totalTrains: blueTotalTrains}
+      ]: [any, any]) => ({totalTrains: redTotalTrains + blueTotalTrains})
+    )
+  ;
+}
+
+function main(sources: any) {
+
+  const {
+    value: redLineCreatorValue$
+    , react: redLineCreatorVdom$
+  } = TrainCreator({
+    react: sources.react
+    , props: xs.of({lineColor: 'Red'})
+  }) ;
+  const {
+    value: blueLineCreatorValue$
+    , react: blueLineCreatorVdom$
+  } = TrainCreator({
+    react: sources.react
+    , props: xs.of({lineColor: 'Blue'})
+  }) ;
+
+  const state$ = model(redLineCreatorValue$, blueLineCreatorValue$) ;
+
+  const vdom$ = view(state$, redLineCreatorVdom$, blueLineCreatorVdom$) ;
 
   return {
     react: vdom$
@@ -55,8 +67,6 @@ function main(sources: any) {
 
 }
 
-const App = makeComponent(
-  main
-);
+const App = makeComponent(main) ;
 
 export default App;
