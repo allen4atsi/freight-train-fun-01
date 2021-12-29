@@ -1,6 +1,6 @@
 import xs from 'xstream';
-import {h, makeComponent} from '@cycle/react';
-import {Container, Header, Button} from 'semantic-ui-react' ;
+import {h} from '@cycle/react';
+import {Segment, Container, Header, Button} from 'semantic-ui-react' ;
 
 function intent(reactSource: any, incSym: symbol, decSym: symbol) {
   const inc$ = reactSource.select(incSym).events('click') ;
@@ -26,13 +26,10 @@ function model(prop$: any, inc$: any, dec$: any) {
     )
   ;
 
-  const state$ = prop$
+  const state$ = xs.combine(prop$, count$)
     .map(
-      ({lineColor}: {lineColor: string}) => count$
-        .map((trainCount: number) => ({lineColor, trainCount}))
-        // .startWith({lineColor})
+      ([{lineColor}, trainCount]: [any, any]) => ({lineColor, trainCount})
     )
-    .flatten()
     .remember()
   ;
 
@@ -43,7 +40,7 @@ function model(prop$: any, inc$: any, dec$: any) {
 function view(state$: any, inc: symbol, dec: symbol) {
   return state$.map(
     ({lineColor, trainCount}: {lineColor: string, trainCount: number}) =>
-      [
+      h(Segment, {vertical: true}, [
         <Header as="h2">{lineColor} Line Trains: {trainCount}</Header>
         , <Button.Group>
           {h(Button, {sel: dec}, 'Fewer')}
@@ -55,7 +52,7 @@ function view(state$: any, inc: symbol, dec: symbol) {
           ? '(No trains)'
           : '🚆'.repeat(trainCount)
          ))
-      ]
+      ])
   ) ;
 }
 
