@@ -2,20 +2,24 @@ import './App.css';
 import xs from 'xstream';
 import {Stream} from 'xstream' ;
 import flattenConcurrently from 'xstream/extra/flattenConcurrently';
-import sampleCombine from 'xstream/extra/sampleCombine';
 import {h, makeComponent, ReactSource} from '@cycle/react';
 import {Container, Header, Button, Segment, Dropdown} from 'semantic-ui-react' ;
 import TrainCreator from './components/TrainCreator' ;
-
-const lineColorSelectorSym = Symbol() ;
-const lineColorAddButtonSym = Symbol() ;
+import TrainLineCreator from './components/TrainLineCreator' ;
 
 function view(
   state$: Stream<{totalTrains: number}>
+  , addTrainLinesVdom$: Stream<any>
   , trainLineVdom$: Stream<any>
 ) {
-  return xs.combine(state$, trainLineVdom$)
-    .map(([state, trainLineVdoms]: [{totalTrains: number}, any]) =>
+  return xs.combine(state$, addTrainLinesVdom$, trainLineVdom$)
+    .map((
+      [state, addTrainLinesVdom, trainLineVdoms]: [
+        {totalTrains: number}
+        , any
+        , any
+      ]
+    ) =>
       h(Container, [
         <Segment vertical>
           <Header as="h1">
@@ -24,26 +28,7 @@ function view(
             logistical rules you build for them.</Header.Subheader>
           </Header>
         </Segment>
-        , <Segment vertical>
-          <Header as="h3">Add some train lines</Header>
-          {
-            h(Dropdown, {
-              sel: lineColorSelectorSym
-              , selection: true
-              , search: true
-              , placeholder: 'New line color'
-              , options: [
-                {key: 'Red', value: 'Red', text: 'Red'}
-                , {key: 'Blue', value: 'Blue', text: 'Blue'}
-                , {key: 'Green', value: 'Green', text: 'Green'}
-                , {key: 'Purple', value: 'Purple', text: 'Purple'}
-                , {key: 'Orange', value: 'Orange', text: 'Orange'}
-              ]
-            })
-          }{
-            h(Button, {sel: lineColorAddButtonSym}, '+')
-          }
-        </Segment>
+        , addTrainLinesVdom
         , ...trainLineVdoms
         , <Segment>Total trains: {state.totalTrains}</Segment>
       ])
@@ -65,40 +50,10 @@ function model(trainLineValues$: Stream<{totalTrains: number}[]>) {
 
 function main(sources: any) {
 
-  const trainLineAddButtonClick$ = sources.react
-    .select(lineColorAddButtonSym)
-    .events('click')
-  ;
-
-  const trainLineSelection$ = sources.react
-    .select(lineColorSelectorSym)
-    .events('change')
-    .map((event: any) => event.target.textContent)
-    .filter((text: string) => text !== '')
-  ;
-
-  const addedTrainLineColors$ = trainLineAddButtonClick$
-    .compose(sampleCombine(trainLineSelection$))
-    .map(([clickEvent, selectorText]: [any, string]) => selectorText)
-    .fold(
-      (
-        acc: {
-          used: {
-            [key: string]: boolean}
-            , color: string
-            , colorWasInUsed: boolean
-          }
-        , color: string
-      ) => ({
-        used: Object.assign({}, acc.used, {[color]: true})
-        , color
-        , colorWasInUsed: typeof acc.used[color] !== 'undefined'
-      })
-      , {used: {}, color: '', colorWasInUsed: true}
-    )
-    .filter(({colorWasInUsed}: {colorWasInUsed: boolean}) => !colorWasInUsed)
-    .map(({color}: {color: string}) => color)
-  ;
+  const {
+    react: addTrainLinesVdom$
+    , addedTrainLineColors: addedTrainLineColors$
+  } = TrainLineCreator({react: sources.react}) ;
 
   const trainLines$ = addedTrainLineColors$
     .fold(
@@ -133,7 +88,7 @@ function main(sources: any) {
 
   const state$ = model(trainLineValues$) ;
 
-  const vdom$ = view(state$, trainLineVdom$) ;
+  const vdom$ = view(state$, addTrainLinesVdom$, trainLineVdom$) ;
 
   return {
     react: vdom$
