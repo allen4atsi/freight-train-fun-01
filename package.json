@@ -1,7 +1,7 @@
 {
   "name": "freight-train-fun-01",
-  "version": "0.1.1",
-  "private": true,
+  "version": "0.2.0",
+  "license": "MIT",
   "dependencies": {
     "@cycle/react": "^2.9.0",
     "@cycle/run": "^5.5.0",
