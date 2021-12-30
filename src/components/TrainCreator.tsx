@@ -66,7 +66,7 @@ function view(
   ) ;
 }
 
-export default function TrainCounter(sources: {
+export default function TrainCreator(sources: {
   react: ReactSource
   , props: Stream<{lineColor: string}>
 }) {
