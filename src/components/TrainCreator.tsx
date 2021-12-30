@@ -1,21 +1,26 @@
 import xs from 'xstream';
-import {h} from '@cycle/react';
+import {Stream} from 'xstream' ;
+import {h, ReactSource} from '@cycle/react';
 import {Segment, Container, Header, Button} from 'semantic-ui-react' ;
 
-function intent(reactSource: any, incSym: symbol, decSym: symbol) {
+function intent(reactSource: ReactSource, incSym: symbol, decSym: symbol) {
   const inc$ = reactSource.select(incSym).events('click') ;
   const dec$ = reactSource.select(decSym).events('click') ;
   return {inc$, dec$} ;
 }
 
-function model(prop$: any, inc$: any, dec$: any) {
+function model(
+  prop$: Stream<{lineColor: string}>
+  , inc$: Stream<any>
+  , dec$: Stream<any>
+) {
 
   const count$ = xs.merge(
     inc$.map(() => 1)
     , dec$.map(() => -1)
   )
     .fold(
-      (acc: number, curr: any) => (
+      (acc: number, curr: number) => (
         (sum =>
           sum < 0
           ? 0
@@ -28,7 +33,8 @@ function model(prop$: any, inc$: any, dec$: any) {
 
   const state$ = xs.combine(prop$, count$)
     .map(
-      ([{lineColor}, trainCount]: [any, any]) => ({lineColor, trainCount})
+      ([{lineColor}, trainCount]: [{lineColor: string}, number]) =>
+        ({lineColor, trainCount})
     )
     .remember()
   ;
@@ -37,7 +43,11 @@ function model(prop$: any, inc$: any, dec$: any) {
 
 }
 
-function view(state$: any, inc: symbol, dec: symbol) {
+function view(
+  state$: Stream<{lineColor: string, trainCount: number}>
+  , inc: symbol
+  , dec: symbol
+) {
   return state$.map(
     ({lineColor, trainCount}: {lineColor: string, trainCount: number}) =>
       h(Segment, {vertical: true}, [
@@ -56,7 +66,10 @@ function view(state$: any, inc: symbol, dec: symbol) {
   ) ;
 }
 
-export default function TrainCounter(sources: any) {
+export default function TrainCounter(sources: {
+  react: ReactSource
+  , props: Stream<{lineColor: string}>
+}) {
 
   const prop$ = sources.props ;
 

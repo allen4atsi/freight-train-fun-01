@@ -1,23 +1,27 @@
 import './App.css';
 import xs from 'xstream';
+import {Stream} from 'xstream' ;
 import flattenConcurrently from 'xstream/extra/flattenConcurrently';
 import sampleCombine from 'xstream/extra/sampleCombine';
-import {h, makeComponent} from '@cycle/react';
+import {h, makeComponent, ReactSource} from '@cycle/react';
 import {Container, Header, Button, Segment, Dropdown} from 'semantic-ui-react' ;
 import TrainCreator from './components/TrainCreator' ;
 
 const lineColorSelectorSym = Symbol() ;
 const lineColorAddButtonSym = Symbol() ;
 
-function view(state$: any, trainLineVdom$: any) {
+function view(
+  state$: Stream<{totalTrains: number}>
+  , trainLineVdom$: Stream<any>
+) {
   return xs.combine(state$, trainLineVdom$)
-    .map(([state, trainLineVdoms]: [any, any]) =>
+    .map(([state, trainLineVdoms]: [{totalTrains: number}, any]) =>
       h(Container, [
         <Segment vertical>
           <Header as="h1">
             Freight Train Fun 01
-            <Header.Subheader>Have fun watching your trains follow the logistical rules you build
-            for them.</Header.Subheader>
+            <Header.Subheader>Have fun watching your trains follow the
+            logistical rules you build for them.</Header.Subheader>
           </Header>
         </Segment>
         , <Segment vertical>
@@ -47,10 +51,10 @@ function view(state$: any, trainLineVdom$: any) {
   ;
 }
 
-function model(trainLineValues$: any) {
+function model(trainLineValues$: Stream<{totalTrains: number}[]>) {
   return trainLineValues$
     .map(
-      (trainValues: any) => ({
+      (trainValues: {totalTrains: number}[]) => ({
         totalTrains: trainValues
           .map(({totalTrains}: {totalTrains: number}) => totalTrains)
           .reduce((a: number,c: number) => a+c, 0)
@@ -75,12 +79,23 @@ function main(sources: any) {
 
   const addedTrainLineColors$ = trainLineAddButtonClick$
     .compose(sampleCombine(trainLineSelection$))
-    .map(([clickEvent, selectorText]: [any, any]) => selectorText)
-    .fold((acc: any, color: string) => ({
-      used: Object.assign({}, acc.used, {[color]: true})
-      , color
-      , colorWasInUsed: typeof acc.used[color] !== 'undefined'
-    }), {used: {}, color: '', colorWasInUsed: true})
+    .map(([clickEvent, selectorText]: [any, string]) => selectorText)
+    .fold(
+      (
+        acc: {
+          used: {
+            [key: string]: boolean}
+            , color: string
+            , colorWasInUsed: boolean
+          }
+        , color: string
+      ) => ({
+        used: Object.assign({}, acc.used, {[color]: true})
+        , color
+        , colorWasInUsed: typeof acc.used[color] !== 'undefined'
+      })
+      , {used: {}, color: '', colorWasInUsed: true}
+    )
     .filter(({colorWasInUsed}: {colorWasInUsed: boolean}) => !colorWasInUsed)
     .map(({color}: {color: string}) => color)
   ;
@@ -104,12 +119,15 @@ function main(sources: any) {
   ;
 
   const trainLineValues$ = trainLines$
-    .map(({value$s}: {value$s: any}) => xs.combine(...value$s))
+    .map(
+      ({value$s}: {value$s: Stream<{totalTrains: number}>[]}) =>
+        xs.combine(...value$s)
+    )
     .compose(flattenConcurrently)
   ;
 
   const trainLineVdom$ = trainLines$
-    .map(({vdom$s}: {vdom$s: any}) => xs.combine(...vdom$s))
+    .map(({vdom$s}: {vdom$s: Stream<any>[]}) => xs.combine(...vdom$s))
     .compose(flattenConcurrently)
   ;
 
